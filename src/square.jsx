@@ -6,7 +6,7 @@ export default function Square({ value, onClick, isWinning }) {
       className={`square ${isWinning ? 'winning-square' : ''}`} 
       onClick={onClick}
     >
-      {value}
+      {value} 
     </button>
   );
 }
