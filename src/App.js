@@ -131,3 +131,194 @@ export default function App() {
   );
 }
 }
+import { useState, useEffect } from "react";
+
+export default function App() {
+ 
+  const [tabuleiro, setTabuleiro] = useState(Array(9).fill(null));
+  const [turnoJogador1, setTurnoJogador1] = useState(true);
+  const [vencedor, setVencedor] = useState(null);
+
+  
+  const [pokemon1, setPokemon1] = useState(null);
+  const [pokemon2, setPokemon2] = useState(null);
+
+ 
+  const [nomeP1, setNomeP1] = useState("pikachu");
+  const [nomeP2, setNomeP2] = useState("bulbasaur");
+
+  
+  const [erro, setErro] = useState("");
+
+  
+  async function buscarPokemon(nomePokemon, númeroJogador) {
+    try {
+      const resposta = await fetch(
+        `https://pokeapi.co/api/v2/pokemon/${nomePokemon.toLowerCase().trim()}`
+      );
+
+      if (!resposta.ok) {
+        throw new Error("Pokémon não encontrado.");
+      }
+
+      const dados = await resposta.json();
+
+      
+      if (númeroJogador === 1) {
+        setPokemon1(dados);
+      } else if (númeroJogador === 2) {
+        setPokemon2(dados);
+      }
+
+    } catch (erroApi) {
+      console.log(erroApi);
+      
+      setErro("Pokémon não encontrado.");
+    }
+  }
+
+  
+  // REQUISITO 1: useEffect executa apenas quando a página é aberta
+  
+  useEffect(() => {
+    setErro("");
+    buscarPokemon("pikachu", 1);
+    buscarPokemon("bulbasaur", 2);
+  }, []);
+
+  
+  function alterarPokemons() {
+    setErro(""); 
+    buscarPokemon(nomeP1, 1);
+    buscarPokemon(nomeP2, 2);
+    reiniciarJogo(); 
+  }
+
+  
+  function clicarCasa(posicao) {
+    
+    if (tabuleiro[posicao] || vencedor || erro || !pokemon1 || !pokemon2) return;
+
+    const novoTabuleiro = [...tabuleiro];
+    
+    novoTabuleiro[posicao] = turnoJogador1 ? pokemon1 : pokemon2;
+    setTabuleiro(novoTabuleiro);
+
+    /
+    if (verificarGanhador(novoTabuleiro)) {
+      setVencedor(turnoJogador1 ? pokemon1 : pokemon2);
+    } else if (novoTabuleiro.every((casa) => casa !== null)) {
+      setVencedor("Empate");
+    } else {
+      setTurnoJogador1(!turnoJogador1); 
+    }
+  }
+
+  
+  function verificarGanhador(quadrados) {
+    const combinacoesDeVitoria = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Linhas
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colunas
+      [0, 4, 8], [2, 4, 6]             // Diagonais
+    ];
+
+    for (let i = 0; i < combinacoesDeVitoria.length; i++) {
+      const [a, b, c] = combinacoesDeVitoria[i];
+      if (quadrados[a] && quadrados[a].name === quadrados[b]?.name && quadrados[a].name === quadrados[c]?.name) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+
+  function reiniciarJogo() {
+    setTabuleiro(Array(9).fill(null));
+    setTurnoJogador1(true);
+    setVencedor(null);
+  }
+
+  return (
+    <div style={{ fontFamily: "sans-serif", textAlign: "center", padding: "20px" }}>
+      <h1>Poké-Tic-Tac-Toe</h1>
+
+      
+      <div style={{ marginBottom: "20px" }}>
+        <div>
+          <label>Jogador 1: </label>
+          <input
+            type="text"
+            value={nomeP1}
+            onChange={(e) => setNomeP1(e.target.value)}
+            placeholder="Digite o nome do Pokémon 1"
+          />
+        </div>
+
+        <div style={{ marginTop: "10px", marginBottom: "10px" }}>
+          <label>Jogador 2: </label>
+          <input
+            type="text"
+            value={nomeP2}
+            onChange={(e) => setNomeP2(e.target.value)}
+            placeholder="Digite o nome do Pokémon 2"
+          />
+        </div>
+
+        <button onClick={alterarPokemons}>
+          Alterar Pokémon
+        </button>
+      </div>
+
+      
+      {erro && <h3 style={{ color: "red" }}>⚠️ {erro}</h3>}
+
+      
+      {pokemon1 && pokemon2 && !erro && (
+        <h2>
+          {vencedor ? (
+            vencedor === "Empate" ? "Deu Velha! Empate! 🤝" : `🏆 Vitória de: ${vencedor.name.toUpperCase()}`
+          ) : (
+            `Turno de: ${turnoJogador1 ? pokemon1.name.toUpperCase() : pokemon2.name.toUpperCase()}`
+          )}
+        </h2>
+      )}
+
+     
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 100px)",
+        gridGap: "5px",
+        justifyContent: "center",
+        marginBottom: "20px"
+      }}>
+        {tabuleiro.map((casa, index) => (
+          <button
+            key={index}
+            onClick={() => clicarCasa(index)}
+            style={{
+              width: "100px",
+              height: "100px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            
+            {casa && (
+              <img 
+                src={casa.sprites.front_default} 
+                alt={casa.name} 
+                style={{ width: "80px", height: "80px" }} 
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <button onClick={reiniciarJogo}>
+        Reiniciar Partida
+      </button>
+    </div>
+  );
+}
